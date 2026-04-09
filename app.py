@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 from groq import Groq
 
 # ------------------------------
-# Page Config
+# PAGE CONFIG
 # ------------------------------
 st.set_page_config(
     page_title="Trauma Support AI",
@@ -14,23 +14,63 @@ st.set_page_config(
 )
 
 # ------------------------------
-# Sidebar
+# CUSTOM CSS (Premium UI)
 # ------------------------------
-st.sidebar.title("ℹ️ About")
-st.sidebar.info(
-    """
-    AI-powered emotional distress detection system.
-    
-    Features:
-    - Trauma Detection
-    - Severity Analysis
-    - AI Support
-    - Wellness Guidance
-    """
-)
+st.markdown("""
+<style>
+.main {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+}
+.stApp {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+}
+.block-container {
+    padding-top: 2rem;
+}
+.big-title {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: bold;
+    color: white;
+}
+.sub-title {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #cbd5e1;
+    margin-bottom: 2rem;
+}
+.card {
+    background: rgba(255,255,255,0.08);
+    padding: 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    margin-bottom: 20px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ------------------------------
-# Dataset
+# SIDEBAR
+# ------------------------------
+st.sidebar.title("🧠 Trauma Support AI")
+st.sidebar.info("""
+Advanced emotional wellness assistant powered by:
+- Machine Learning
+- Groq LLM
+- Knowledge Base
+- Wellness Guidance
+""")
+
+# ------------------------------
+# KNOWLEDGE BASE
+# ------------------------------
+with open("knowledge_base.txt", "r") as file:
+    knowledge_base = file.read()
+
+# ------------------------------
+# DATASET
 # ------------------------------
 data = {
     'text': [
@@ -41,15 +81,28 @@ data = {
         "I cannot sleep and feel stressed",
         "I am enjoying my day",
         "I feel empty and depressed",
-        "Everything is fine"
+        "Everything is fine",
+        "I feel lonely and broken",
+        "Nobody understands me",
+        "I feel worthless",
+        "I want to disappear",
+        "Today was amazing",
+        "I love spending time with friends",
+        "Feeling peaceful and calm",
+        "I feel emotionally exhausted",
+        "I cry every night",
+        "I feel trapped in my thoughts"
     ],
-    'label': [1, 0, 1, 0, 1, 0, 1, 0]
+    'label': [
+        1,0,1,0,1,0,1,0,
+        1,1,1,1,0,0,0,1,1,1
+    ]
 }
 
 df = pd.DataFrame(data)
 
 # ------------------------------
-# ML Model
+# ML MODEL
 # ------------------------------
 vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(df['text'])
@@ -59,16 +112,22 @@ model = LogisticRegression()
 model.fit(X, y)
 
 # ------------------------------
-# Main UI
+# MAIN HEADER
 # ------------------------------
-st.title("🧠 AI Trauma Detection & Wellness Support")
-st.markdown("### Early emotional support using AI + LLM")
+st.markdown('<div class="big-title">🧠 Trauma Detection & Wellness AI</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Advanced emotional support powered by AI + LLM</div>', unsafe_allow_html=True)
 
+# ------------------------------
+# INPUT SECTION
+# ------------------------------
 user_input = st.text_area(
     "💬 Share how you're feeling today:",
-    height=150
+    height=180
 )
 
+# ------------------------------
+# ANALYZE BUTTON
+# ------------------------------
 if st.button("🔍 Analyze My Feelings"):
 
     # Prediction
@@ -81,11 +140,18 @@ if st.button("🔍 Analyze My Feelings"):
     else:
         result = "✅ Emotional State Appears Stable"
 
-    # Severity
+    # Severity Logic
     text = user_input.lower()
 
-    high_words = ["hopeless", "depressed", "suicide", "empty"]
-    medium_words = ["anxious", "scared", "stressed", "lonely"]
+    high_words = [
+        "hopeless", "depressed", "suicide", "empty",
+        "worthless", "disappear", "cry"
+    ]
+
+    medium_words = [
+        "anxious", "scared", "stressed",
+        "lonely", "exhausted", "trapped"
+    ]
 
     if any(word in text for word in high_words):
         severity = "🔴 HIGH RISK"
@@ -97,7 +163,7 @@ if st.button("🔍 Analyze My Feelings"):
         severity = "🟢 LOW RISK"
         wellness_score = 85
 
-    # Layout columns
+    # Metrics
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -113,12 +179,15 @@ if st.button("🔍 Analyze My Feelings"):
     st.subheader("🌿 Wellness Meter")
     st.progress(wellness_score)
 
-    # Groq LLM
+    # Groq API
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
     prompt = f"""
-    A user said: "{user_input}"
+    User said: "{user_input}"
     Severity: {severity}
+
+    Knowledge base:
+    {knowledge_base}
 
     Give:
     1. empathetic emotional support
@@ -131,10 +200,14 @@ if st.button("🔍 Analyze My Feelings"):
         messages=[{"role": "user", "content": prompt}]
     )
 
+    # AI Response Card
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("🤖 AI Emotional Support")
     st.write(response.choices[0].message.content)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Recommendations
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("💡 Wellness Suggestions")
 
     if "HIGH" in severity:
@@ -154,3 +227,5 @@ if st.button("🔍 Analyze My Feelings"):
         st.write("• Stay socially connected")
         st.write("• Continue positive routines")
         st.write("• Practice gratitude")
+
+    st.markdown('</div>', unsafe_allow_html=True)
