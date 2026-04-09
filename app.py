@@ -4,7 +4,34 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from groq import Groq
 
+# ------------------------------
+# Page Config
+# ------------------------------
+st.set_page_config(
+    page_title="Trauma Support AI",
+    page_icon="🧠",
+    layout="wide"
+)
+
+# ------------------------------
+# Sidebar
+# ------------------------------
+st.sidebar.title("ℹ️ About")
+st.sidebar.info(
+    """
+    AI-powered emotional distress detection system.
+    
+    Features:
+    - Trauma Detection
+    - Severity Analysis
+    - AI Support
+    - Wellness Guidance
+    """
+)
+
+# ------------------------------
 # Dataset
+# ------------------------------
 data = {
     'text': [
         "I feel very sad and hopeless",
@@ -21,7 +48,9 @@ data = {
 
 df = pd.DataFrame(data)
 
-# Model
+# ------------------------------
+# ML Model
+# ------------------------------
 vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(df['text'])
 y = df['label']
@@ -29,24 +58,30 @@ y = df['label']
 model = LogisticRegression()
 model.fit(X, y)
 
-# UI
-st.title("🧠 AI Trauma Detection & Support System")
+# ------------------------------
+# Main UI
+# ------------------------------
+st.title("🧠 AI Trauma Detection & Wellness Support")
+st.markdown("### Early emotional support using AI + LLM")
 
-user_input = st.text_area("Enter your feelings:")
+user_input = st.text_area(
+    "💬 Share how you're feeling today:",
+    height=150
+)
 
-if st.button("Analyze"):
+if st.button("🔍 Analyze My Feelings"):
 
+    # Prediction
     user_vector = vectorizer.transform([user_input])
     prediction = model.predict(user_vector)
+    confidence = model.predict_proba(user_vector).max() * 100
 
     if prediction[0] == 1:
         result = "⚠️ Emotional Distress Detected"
     else:
-        result = "✅ Normal"
+        result = "✅ Emotional State Appears Stable"
 
-    st.subheader("Prediction")
-    st.write(result)
-
+    # Severity
     text = user_input.lower()
 
     high_words = ["hopeless", "depressed", "suicide", "empty"]
@@ -54,21 +89,41 @@ if st.button("Analyze"):
 
     if any(word in text for word in high_words):
         severity = "🔴 HIGH RISK"
+        wellness_score = 25
     elif any(word in text for word in medium_words):
         severity = "🟠 MEDIUM RISK"
+        wellness_score = 55
     else:
         severity = "🟢 LOW RISK"
+        wellness_score = 85
 
-    st.subheader("Severity")
-    st.write(severity)
+    # Layout columns
+    col1, col2, col3 = st.columns(3)
 
+    with col1:
+        st.metric("Prediction", result)
+
+    with col2:
+        st.metric("Severity", severity)
+
+    with col3:
+        st.metric("Confidence", f"{confidence:.2f}%")
+
+    # Wellness Meter
+    st.subheader("🌿 Wellness Meter")
+    st.progress(wellness_score)
+
+    # Groq LLM
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
     prompt = f"""
     A user said: "{user_input}"
     Severity: {severity}
 
-    Give empathetic response, advice, and support.
+    Give:
+    1. empathetic emotional support
+    2. calming advice
+    3. coping suggestions
     """
 
     response = client.chat.completions.create(
@@ -76,14 +131,26 @@ if st.button("Analyze"):
         messages=[{"role": "user", "content": prompt}]
     )
 
-    st.subheader("AI Support")
+    st.subheader("🤖 AI Emotional Support")
     st.write(response.choices[0].message.content)
 
-    st.subheader("Recommendation")
+    # Recommendations
+    st.subheader("💡 Wellness Suggestions")
 
     if "HIGH" in severity:
-        st.error("Seek professional help immediately.")
+        st.error("🚨 Please seek professional mental health support immediately.")
+        st.write("• Contact a counselor")
+        st.write("• Reach out to trusted family/friends")
+        st.write("• Avoid isolation")
+
     elif "MEDIUM" in severity:
-        st.warning("Talk to someone you trust.")
+        st.warning("🌼 Consider self-care and emotional support.")
+        st.write("• Practice breathing exercises")
+        st.write("• Talk to someone you trust")
+        st.write("• Rest properly")
+
     else:
-        st.success("You're doing fine. Keep going.")
+        st.success("🌟 Keep maintaining healthy habits.")
+        st.write("• Stay socially connected")
+        st.write("• Continue positive routines")
+        st.write("• Practice gratitude")
